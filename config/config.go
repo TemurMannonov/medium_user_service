@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	HttpPort      string
+	GrpcPort      string
 	Postgres      PostgresConfig
 	Redis         Redis
 	AuthSecretKey string
@@ -31,7 +31,7 @@ func Load(path string) Config {
 	conf.AutomaticEnv()
 
 	cfg := Config{
-		HttpPort: conf.GetString("HTTP_PORT"),
+		GrpcPort: conf.GetString("GRPC_PORT"),
 		Postgres: PostgresConfig{
 			Host:     conf.GetString("POSTGRES_HOST"),
 			Port:     conf.GetString("POSTGRES_PORT"),

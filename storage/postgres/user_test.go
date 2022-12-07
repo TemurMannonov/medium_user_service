@@ -3,7 +3,7 @@ package postgres_test
 import (
 	"testing"
 
-	"github.com/TemurMannonov/mediium_user_service/storage/repo"
+	"github.com/TemurMannonov/medium_user_service/storage/repo"
 	"github.com/bxcodec/faker/v4"
 	"github.com/stretchr/testify/require"
 )

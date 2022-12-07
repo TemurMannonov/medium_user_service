@@ -3,7 +3,7 @@ package postgres
 import (
 	"fmt"
 
-	"github.com/TemurMannonov/mediium_user_service/storage/repo"
+	"github.com/TemurMannonov/medium_user_service/storage/repo"
 	"github.com/jmoiron/sqlx"
 )
 

@@ -4,6 +4,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DATABASE=medium_user_service_db
 
+CURRENT_DIR=$(shell pwd)
+
 -include .env
   
 DB_URL="postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DATABASE)?sslmode=disable"
@@ -32,5 +34,9 @@ migratedown1:
 
 local-up:
 	docker compose --env-file ./.env.docker up -d
+
+proto-gen:
+	rm -rf genproto
+	./scripts/gen-proto.sh ${CURRENT_DIR}
 
 .PHONY: start migrateup migratedown

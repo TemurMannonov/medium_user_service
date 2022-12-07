@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/TemurMannonov/mediium_user_service/config"
+	"github.com/TemurMannonov/medium_user_service/config"
 	"github.com/golang-jwt/jwt"
 )
 
