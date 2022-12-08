@@ -11,12 +11,12 @@ type User struct {
 	ID              int64
 	FirstName       string
 	LastName        string
-	PhoneNumber     *string
+	PhoneNumber     string
 	Email           string
-	Gender          *string
+	Gender          string
 	Password        string
-	Username        *string
-	ProfileImageUrl *string
+	Username        string
+	ProfileImageUrl string
 	Type            string
 	CreatedAt       time.Time
 }
@@ -43,4 +43,6 @@ type UserStorageI interface {
 	GetByEmail(email string) (*User, error)
 	GetAll(params *GetAllUsersParams) (*GetAllUsersResult, error)
 	UpdatePassword(req *UpdatePassword) error
+	Update(u *User) (*User, error)
+	Delete(id int64) error
 }

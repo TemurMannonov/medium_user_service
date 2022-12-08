@@ -41,6 +41,7 @@ func main() {
 	inMemory := storage.NewInMemoryStorage(rdb)
 
 	userService := service.NewUserService(strg, inMemory)
+	authService := service.NewAuthService(strg, inMemory)
 
 	lis, err := net.Listen("tcp", cfg.GrpcPort)
 	if err != nil {
@@ -51,6 +52,7 @@ func main() {
 	reflection.Register(s)
 
 	pb.RegisterUserServiceServer(s, userService)
+	pb.RegisterAuthServiceServer(s, authService)
 
 	log.Println("Grpc server started in port ", cfg.GrpcPort)
 	if err := s.Serve(lis); err != nil {

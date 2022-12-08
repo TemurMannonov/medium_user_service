@@ -24,6 +24,7 @@ type UserServiceClient interface {
 	GetAll(ctx context.Context, in *GetAllUsersRequest, opts ...grpc.CallOption) (*GetAllUsersResponse, error)
 	Update(ctx context.Context, in *User, opts ...grpc.CallOption) (*User, error)
 	Delete(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetByEmail(ctx context.Context, in *GetByEmailRequest, opts ...grpc.CallOption) (*User, error)
 }
 
 type userServiceClient struct {
@@ -79,6 +80,15 @@ func (c *userServiceClient) Delete(ctx context.Context, in *IdRequest, opts ...g
 	return out, nil
 }
 
+func (c *userServiceClient) GetByEmail(ctx context.Context, in *GetByEmailRequest, opts ...grpc.CallOption) (*User, error) {
+	out := new(User)
+	err := c.cc.Invoke(ctx, "/genproto.UserService/GetByEmail", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
@@ -88,6 +98,7 @@ type UserServiceServer interface {
 	GetAll(context.Context, *GetAllUsersRequest) (*GetAllUsersResponse, error)
 	Update(context.Context, *User) (*User, error)
 	Delete(context.Context, *IdRequest) (*emptypb.Empty, error)
+	GetByEmail(context.Context, *GetByEmailRequest) (*User, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -109,6 +120,9 @@ func (UnimplementedUserServiceServer) Update(context.Context, *User) (*User, err
 }
 func (UnimplementedUserServiceServer) Delete(context.Context, *IdRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedUserServiceServer) GetByEmail(context.Context, *GetByEmailRequest) (*User, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetByEmail not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -213,6 +227,24 @@ func _UserService_Delete_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_GetByEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetByEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetByEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/genproto.UserService/GetByEmail",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetByEmail(ctx, req.(*GetByEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -239,6 +271,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _UserService_Delete_Handler,
+		},
+		{
+			MethodName: "GetByEmail",
+			Handler:    _UserService_GetByEmail_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
