@@ -10,6 +10,9 @@ type Config struct {
 	Postgres      PostgresConfig
 	Redis         Redis
 	AuthSecretKey string
+
+	NotificationServiceGrpcPort string
+	NotificationServiceHost     string
 }
 
 type PostgresConfig struct {
@@ -42,7 +45,9 @@ func Load(path string) Config {
 		Redis: Redis{
 			Addr: conf.GetString("REDIS_ADDR"),
 		},
-		AuthSecretKey: conf.GetString("AUTH_SECRET_KEY"),
+		AuthSecretKey:               conf.GetString("AUTH_SECRET_KEY"),
+		NotificationServiceHost:     conf.GetString("NOTIFICATION_SERVICE_HOST"),
+		NotificationServiceGrpcPort: conf.GetString("NOTIFICATION_SERVICE_GRPC_PORT"),
 	}
 
 	return cfg
