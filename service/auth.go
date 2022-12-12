@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/TemurMannonov/medium_user_service/config"
 	"github.com/TemurMannonov/medium_user_service/genproto/notification_service"
 	pb "github.com/TemurMannonov/medium_user_service/genproto/user_service"
 	"github.com/TemurMannonov/medium_user_service/pkg/utils"
@@ -23,13 +24,15 @@ type AuthService struct {
 	storage    storage.StorageI
 	inMemory   storage.InMemoryStorageI
 	grpcClient grpcPkg.GrpcClientI
+	cfg        *config.Config
 }
 
-func NewAuthService(strg storage.StorageI, inMemory storage.InMemoryStorageI, grpcConn grpcPkg.GrpcClientI) *AuthService {
+func NewAuthService(strg storage.StorageI, inMemory storage.InMemoryStorageI, grpcConn grpcPkg.GrpcClientI, cfg *config.Config) *AuthService {
 	return &AuthService{
 		storage:    strg,
 		inMemory:   inMemory,
 		grpcClient: grpcConn,
+		cfg:        cfg,
 	}
 }
 
@@ -96,4 +99,51 @@ func (s *AuthService) sendVerificationCode(key, email string) error {
 	}
 
 	return nil
+}
+
+func (s *AuthService) Verify(ctx context.Context, req *pb.VerifyRegisterRequest) (*pb.AuthResponse, error) {
+	userData, err := s.inMemory.Get("user_" + req.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+	}
+
+	var user repo.User
+	err = json.Unmarshal([]byte(userData), &user)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+	}
+
+	code, err := s.inMemory.Get(RegisterCodeKey + user.Email)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Code expired: %v", err)
+	}
+
+	if req.Code != code {
+		return nil, status.Errorf(codes.Internal, "Incorrect code: %v", err)
+	}
+
+	result, err := s.storage.User().Create(&user)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Code expired: %v", err)
+	}
+
+	token, _, err := utils.CreateToken(s.cfg, &utils.TokenParams{
+		UserID:   result.ID,
+		Email:    result.Email,
+		UserType: result.Type,
+		Duration: time.Hour * 24,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
+	}
+
+	return &pb.AuthResponse{
+		Id:          result.ID,
+		FirstName:   result.FirstName,
+		LastName:    result.LastName,
+		Email:       result.Email,
+		Type:        result.Type,
+		CreatedAt:   result.CreatedAt.Format(time.RFC3339),
+		AccessToken: token,
+	}, nil
 }
