@@ -48,7 +48,7 @@ func main() {
 	}
 
 	userService := service.NewUserService(strg, inMemory)
-	authService := service.NewAuthService(strg, inMemory, grpcConn)
+	authService := service.NewAuthService(strg, inMemory, grpcConn, &cfg)
 
 	lis, err := net.Listen("tcp", cfg.GrpcPort)
 	if err != nil {
