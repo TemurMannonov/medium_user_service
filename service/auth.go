@@ -44,7 +44,7 @@ const (
 func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*emptypb.Empty, error) {
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to hash: %v", err)
 	}
 
 	user := repo.User{
@@ -57,12 +57,12 @@ func (s *AuthService) Register(ctx context.Context, req *pb.RegisterRequest) (*e
 
 	userData, err := json.Marshal(user)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to marshal: %v", err)
 	}
 
 	err = s.inMemory.Set("user_"+user.Email, string(userData), 10*time.Minute)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to set to rd: %v", err)
 	}
 
 	go func() {
@@ -104,27 +104,27 @@ func (s *AuthService) sendVerificationCode(key, email string) error {
 func (s *AuthService) Verify(ctx context.Context, req *pb.VerifyRegisterRequest) (*pb.AuthResponse, error) {
 	userData, err := s.inMemory.Get("user_" + req.Email)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+		return nil, status.Errorf(codes.NotFound, err.Error())
 	}
 
 	var user repo.User
 	err = json.Unmarshal([]byte(userData), &user)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal server error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to unmarshal: %v", err)
 	}
 
 	code, err := s.inMemory.Get(RegisterCodeKey + user.Email)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Code expired: %v", err)
+		return nil, status.Errorf(codes.Internal, "code_expired")
 	}
 
 	if req.Code != code {
-		return nil, status.Errorf(codes.Internal, "Incorrect code: %v", err)
+		return nil, status.Errorf(codes.Internal, "incorrect_code")
 	}
 
 	result, err := s.storage.User().Create(&user)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Code expired: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create user: %v", err)
 	}
 
 	token, _, err := utils.CreateToken(s.cfg, &utils.TokenParams{
@@ -134,7 +134,7 @@ func (s *AuthService) Verify(ctx context.Context, req *pb.VerifyRegisterRequest)
 		Duration: time.Hour * 24,
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "Internal error: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create user: %v", err)
 	}
 
 	return &pb.AuthResponse{
