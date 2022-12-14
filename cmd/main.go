@@ -17,6 +17,7 @@ import (
 	"github.com/TemurMannonov/medium_user_service/storage"
 
 	grpcPkg "github.com/TemurMannonov/medium_user_service/pkg/grpc_client"
+	"github.com/TemurMannonov/medium_user_service/pkg/logger"
 )
 
 func main() {
@@ -46,8 +47,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to get grpc connections: %v", err)
 	}
+	logrus := logger.New()
 
-	userService := service.NewUserService(strg, inMemory)
+	userService := service.NewUserService(strg, inMemory, logrus)
 	authService := service.NewAuthService(strg, inMemory, grpcConn, &cfg)
 
 	lis, err := net.Listen("tcp", cfg.GrpcPort)
