@@ -50,7 +50,7 @@ func main() {
 	logrus := logger.New()
 
 	userService := service.NewUserService(strg, inMemory, logrus)
-	authService := service.NewAuthService(strg, inMemory, grpcConn, &cfg)
+	authService := service.NewAuthService(strg, inMemory, grpcConn, &cfg, logrus)
 
 	lis, err := net.Listen("tcp", cfg.GrpcPort)
 	if err != nil {

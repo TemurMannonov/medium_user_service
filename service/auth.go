@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	pb "github.com/TemurMannonov/medium_user_service/genproto/user_service"
 	"github.com/TemurMannonov/medium_user_service/pkg/utils"
 	"github.com/TemurMannonov/medium_user_service/storage/repo"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -25,14 +28,16 @@ type AuthService struct {
 	inMemory   storage.InMemoryStorageI
 	grpcClient grpcPkg.GrpcClientI
 	cfg        *config.Config
+	logger     *logrus.Logger
 }
 
-func NewAuthService(strg storage.StorageI, inMemory storage.InMemoryStorageI, grpcConn grpcPkg.GrpcClientI, cfg *config.Config) *AuthService {
+func NewAuthService(strg storage.StorageI, inMemory storage.InMemoryStorageI, grpcConn grpcPkg.GrpcClientI, cfg *config.Config, logger *logrus.Logger) *AuthService {
 	return &AuthService{
 		storage:    strg,
 		inMemory:   inMemory,
 		grpcClient: grpcConn,
 		cfg:        cfg,
+		logger:     logger,
 	}
 }
 
@@ -156,12 +161,55 @@ func (s *AuthService) VerifyToken(ctx context.Context, req *pb.VerifyTokenReques
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
 	}
 
+	hasPermission, err := s.storage.Permission().CheckPermission(payload.UserType, req.Resource, req.Action)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "internal error: %v", err)
+	}
+
 	return &pb.AuthPayload{
-		Id:        payload.ID.String(),
-		UserId:    payload.UserID,
-		Email:     payload.Email,
-		UserType:  payload.UserType,
-		IssuedAt:  payload.IssuedAt.Format(time.RFC3339),
-		ExpiredAt: payload.ExpiredAt.Format(time.RFC3339),
+		Id:            payload.ID.String(),
+		UserId:        payload.UserID,
+		Email:         payload.Email,
+		UserType:      payload.UserType,
+		IssuedAt:      payload.IssuedAt.Format(time.RFC3339),
+		ExpiredAt:     payload.ExpiredAt.Format(time.RFC3339),
+		HasPermission: hasPermission,
+	}, nil
+}
+
+func (s *AuthService) Login(ctx context.Context, req *pb.LoginRequest) (*pb.AuthResponse, error) {
+	user, err := s.storage.User().GetByEmail(req.Email)
+	if err != nil {
+		s.logger.WithError(err).Error("failed to get user by email")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
+		}
+		return nil, status.Errorf(codes.Internal, "internal server error: %v", err)
+	}
+
+	err = utils.CheckPassword(req.Password, user.Password)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "incorrect_password")
+	}
+
+	token, _, err := utils.CreateToken(s.cfg, &utils.TokenParams{
+		UserID:   user.ID,
+		Email:    user.Email,
+		UserType: user.Type,
+		Duration: time.Hour * 24,
+	})
+	if err != nil {
+		s.logger.WithError(err).Error("failed to create token")
+		return nil, status.Errorf(codes.Internal, "internal error: %v", err)
+	}
+
+	return &pb.AuthResponse{
+		Id:          user.ID,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		Email:       user.Email,
+		Type:        user.Type,
+		CreatedAt:   user.CreatedAt.Format(time.RFC3339),
+		AccessToken: token,
 	}, nil
 }
