@@ -18,6 +18,8 @@ import (
 
 	grpcPkg "github.com/TemurMannonov/medium_user_service/pkg/grpc_client"
 	"github.com/TemurMannonov/medium_user_service/pkg/logger"
+
+	messagebroker "github.com/TemurMannonov/medium_user_service/pkg/messagebroker"
 )
 
 func main() {
@@ -49,8 +51,13 @@ func main() {
 	}
 	logrus := logger.New()
 
+	kafka := messagebroker.NewKafka(cfg)
+
 	userService := service.NewUserService(strg, inMemory, logrus)
-	authService := service.NewAuthService(strg, inMemory, grpcConn, &cfg, logrus)
+	authService := service.NewAuthService(
+		strg, inMemory, grpcConn,
+		&cfg, logrus, kafka,
+	)
 
 	lis, err := net.Listen("tcp", cfg.GrpcPort)
 	if err != nil {

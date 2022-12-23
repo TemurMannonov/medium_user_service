@@ -10,6 +10,7 @@ type Config struct {
 	Postgres      PostgresConfig
 	Redis         Redis
 	AuthSecretKey string
+	KafkaUrl      string
 
 	NotificationServiceGrpcPort string
 	NotificationServiceHost     string
@@ -48,6 +49,7 @@ func Load(path string) Config {
 		AuthSecretKey:               conf.GetString("AUTH_SECRET_KEY"),
 		NotificationServiceHost:     conf.GetString("NOTIFICATION_SERVICE_HOST"),
 		NotificationServiceGrpcPort: conf.GetString("NOTIFICATION_SERVICE_GRPC_PORT"),
+		KafkaUrl:                    conf.GetString("KAFKA_URL"),
 	}
 
 	return cfg
